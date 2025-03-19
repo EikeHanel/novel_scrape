@@ -52,4 +52,13 @@ for p in soup.find_all('p'):
 
 
 print(soup)
-# This gives the exact html. Needs to be cleaned so it will work for epub creation
+# prints the <div> with cleaned <p>
+# get all chapters? 
+
+# get structure of epub and make it so i can add content!
+#   add all chapters in one operation
+# OR
+#   add chapter per chapter to the epub
+
+
+# save or look into converting the epub into mobi 
