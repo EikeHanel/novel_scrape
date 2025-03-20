@@ -44,7 +44,7 @@ for p in soup.find_all('p'):
 # Adding chapter to ebook
 add_chapter(file=ebook_name, chapter_title=chapter_title, chapter_content=str(soup))
 
-
+add_chapter(file=ebook_name, chapter_title="2. test", chapter_content=str(soup))
 #   prints the <div> with cleaned <p>
 #   get all chapters?
 #   get structure of epub and make it so i can add content!
