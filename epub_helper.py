@@ -2,7 +2,20 @@ from ebooklib import epub
 
 
 def create_epub(title, description, url):
-    """Creates an initial EPUB file with metadata."""
+    """
+    Creates an initial EPUB file with metadata.
+
+    This function generates an EPUB file with basic metadata, including the title, description, and identifier URL. 
+    It also adds a default CSS stylesheet and initializes the spine with the necessary files for navigation.
+
+    Parameters:
+    title (str): The title of the EPUB book.
+    description (str): A description of the book's content.
+    url (str): A unique identifier (URL) for the book.
+
+    Returns:
+    str: The file name of the created EPUB file.
+    """
     book = epub.EpubBook()
     book.set_identifier(url)
     book.set_title(title)
@@ -57,7 +70,20 @@ def create_epub(title, description, url):
 
 
 def add_chapter(file, chapter_title, chapter_content):
-    """Adds a chapter to an existing EPUB file."""
+    """
+    Adds a chapter to an existing EPUB file.
+
+    This function adds a new chapter to an existing EPUB file. It creates a new HTML file for the chapter 
+    and updates the table of contents (TOC) and the spine of the EPUB book.
+
+    Parameters:
+    file (str): The path to the existing EPUB file to which the chapter will be added.
+    chapter_title (str): The title of the chapter.
+    chapter_content (str): The content of the chapter.
+
+    Returns:
+    None
+    """
     book = epub.read_epub(file)
     print(book)
     # Create a new chapter
@@ -68,11 +94,13 @@ def add_chapter(file, chapter_title, chapter_content):
     book.add_item(c1)
     try:
         nav_len = len(book.toc)
-        book.toc = (book.toc[0], c1)
+        book.toc = book.toc + (c1,)
     except TypeError:
         book.toc = (c1,)
-    if not book.toc:
-        print("ok")
+    
+    # important? 
+    # if not book.toc:
+    
     # Add the TOC file and update the spine
     # book.add_item(epub.EpubNcx())  # You should always include a TOC file (toc.ncx)
     # book.add_item(epub.EpubNav())  # Ensure nav.xhtml exists
