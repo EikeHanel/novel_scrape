@@ -66,6 +66,7 @@ def create_epub(title, description, url):
     book.add_item(epub.EpubNav())
     # Save the empty book
     epub.write_epub(title + ".epub", book, {})
+    print(f"{title}.epub")
     return title + ".epub"
 
 
@@ -85,25 +86,48 @@ def add_chapter(file, chapter_title, chapter_content):
     None
     """
     book = epub.read_epub(file)
-    print(book)
+
     # Create a new chapter
     c1 = epub.EpubHtml(title=chapter_title, file_name=f"{chapter_title}.xhtml", lang="en")
-    c1.content = f"<html><h1>{chapter_title}</h1>\n{chapter_content}</html>"
+    chapter_html_content = f"""
+    <html>
+        <head>
+            <title>{chapter_title}</title>
+        </head>
+        <body>
+            <h1>{chapter_title}</h1>
+            {chapter_content}
+        </body>
+    </html>
+    """
+    c1.content = chapter_html_content
+    book.add_item(c1)
+
+    # Update TOC (Table of Contents)
+    print(book.toc)
+    if type(book.toc) == list:
+        book.toc.append(c1)
+    else:
+        book.toc = (c1,)
+
+    # Update the spine (the reading order of chapters)
+    book.spine.append(c1)
+
+    # Update the spine (the reading order of chapters)
 
     # Add the chapter to the book
-    book.add_item(c1)
-    try:
-        nav_len = len(book.toc)
-        book.toc = book.toc + (c1,)
-    except TypeError:
-        book.toc = (c1,)
-    
+    # book.add_item(c1)
+    # book.toc = (c1,)
+    # try:
+    #     tmp = []
+    #     for b in range(len(book.toc)):
+    #         tmp.append(book.toc[b])
+    #     tmp.append(c1)
+    #     book.toc = tuple(tmp)
+    # except TypeError as e:
+    #     print(e)
+    #     book.toc = (c1,)
+    # Save the updated EPUB
+    epub.write_epub(file, book)
     # important? 
     # if not book.toc:
-    
-    # Add the TOC file and update the spine
-    # book.add_item(epub.EpubNcx())  # You should always include a TOC file (toc.ncx)
-    # book.add_item(epub.EpubNav())  # Ensure nav.xhtml exists
-
-    # Save the updated EPUB
-    epub.write_epub(file, book, {})

@@ -1,10 +1,12 @@
 from selenium import webdriver
+from selenium.common import NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 from epub_helper import create_epub, add_chapter
+import re
 
 
 def main():
@@ -16,36 +18,39 @@ def main():
 
     # Connect to royal road webpage:
     # Replace royal_road_novel with the novel you want to "download" and convert to epub
-    royal_road_novel = "https://www.royalroad.com/fiction/26675/a-journey-of-black-and-red"
+    royal_road_novel = "https://www.royalroad.com/fiction/108300/arcanist-in-another-world-a-healer-archmage-isekai"
     driver = webdriver.Chrome(options=options)
     driver.get(royal_road_novel)
 
     # Get Title and Description
     title = driver.find_element(By.CSS_SELECTOR, "div>h1").text
-    description_lst = [driver.find_element(By.XPATH,
-                                           "/html/body/div[3]/div/div/div/div[1]/div/div[2]/div/div[2]/div[1]/div[2]/div["
-                                           "3]/div/div/div/div/div/div[1]").text,
-                       driver.find_element(By.XPATH,
-                                           "/html/body/div[3]/div/div/div/div[1]/div/div[2]/div/div[2]/div[1]/div[2]/div["
-                                           "3]/div/div/div/div/div/div[4]").text]
-    description = " ".join(description_lst)
+    title = re.sub(r'[^\w\s]', '', title)
+    info_pos = driver.find_element(By.CLASS_NAME, "description")
+    full_info = info_pos.get_attribute("textContent")
+
+    # CREATE EBOOK PART BELOW
 
     # Create epub with title and description:
-    ebook_name = create_epub(title=title, description=description, url=royal_road_novel)
+    ebook_name = create_epub(title=title, description=full_info, url=royal_road_novel)
 
     # Select First Chapter
     wait = WebDriverWait(driver, 10)
-    first_chapter = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="chapters"]/tbody/tr[1]/td[1]')))
+    first_chapter = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '.btn.btn-lg.btn-primary')))
     first_chapter.click()
-    
+
     # check with small novel first just a few chapters!!!
-    
+    # # One Chapter
+    # chapter_title, text = copy_chapter(driver)
+    # add_chapter(file=ebook_name, chapter_title=chapter_title, chapter_content=text)
+    # driver.quit()
+
+    # ALL CHAPTERS
     while True:
         chapter_title, text = copy_chapter(driver)
         add_chapter(file=ebook_name, chapter_title=chapter_title, chapter_content=text)
-        new_chapter = next_chapter()
-        if not new_chapter:
+        if not next_chapter(driver):
             break
+    driver.quit()
 
 
 def copy_chapter(driver):
@@ -63,22 +68,11 @@ def copy_chapter(driver):
     chapter = chapter.get_attribute("outerHTML")
 
     soup = BeautifulSoup(chapter, 'html.parser')
-    # Does not keep <strong></strong> and <i></i> or <em></em>
+    chapter_content = []
     for p in soup.find_all('p'):
-        new_p = BeautifulSoup('<p></p>', 'html.parser').p
-        
-        # NOT TESTED YET
-        # different way to save <stong> etc.
-        
-        for content in p.contents:
-            if content.name in ["strong", "i", "em"]:
-                new_p.append(content)
-            else:
-                new_p.append(str(content))
-        
-        # new_p.extend(p.find_all(string=True, recursive=True))
-        p.replace_with(new_p)
-    return (chapter_title, str(soup))
+        chapter_content.append("<p>" + "".join(str(item) for item in p.contents) + "</p>")
+
+    return chapter_title, " ".join(chapter_content)
 
 
 def next_chapter(driver):
@@ -92,11 +86,15 @@ def next_chapter(driver):
         bool: True if navigation was successful, False if there are no more chapters.
     """
     wait = WebDriverWait(driver, 10)
-    next_chapter = wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[3]/div/div/div/div/div[2]/div[2]/div[1]/div[2]/a')))
-    if next_chapter.get_attribute("disabled") == "disabled":
+    btn_next_chapter = wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div[3]/div/div/div/div/div['
+                                                                            '2]/div[2]/div[1]/div[2]')))
+    try:
+        btn_next_chapter = btn_next_chapter.find_element(By.TAG_NAME, "a")
+        btn_next_chapter.click()
+        return True
+    except NoSuchElementException:
+        print("No more chapters")
         return False
-    next_chapter.click()
-    return True
 
 
 if __name__ == "__main__":
