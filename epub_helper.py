@@ -111,9 +111,11 @@ def add_chapter(file, chapter_title, chapter_content):
     # Update the spine (the reading order of chapters)
     book.spine.append(c1)
 
-    # Update the spine (the reading order of chapters)
+    # Save the updated EPUB
+    epub.write_epub(file, book)
 
-    # Add the chapter to the book
+    # # MAYBE USEFUL ???
+    # # Add the chapter to the book
     # book.add_item(c1)
     # book.toc = (c1,)
     # try:
@@ -125,7 +127,3 @@ def add_chapter(file, chapter_title, chapter_content):
     # except TypeError as e:
     #     print(e)
     #     book.toc = (c1,)
-    # Save the updated EPUB
-    epub.write_epub(file, book)
-    # important? 
-    # if not book.toc:
