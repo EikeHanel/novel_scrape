@@ -28,8 +28,6 @@ def main():
     info_pos = driver.find_element(By.CLASS_NAME, "description")
     full_info = info_pos.get_attribute("textContent")
 
-    # CREATE EBOOK PART BELOW
-
     # Create epub with title and description:
     ebook_name = create_epub(title=title, description=full_info, url=royal_road_novel)
 
@@ -38,7 +36,6 @@ def main():
     first_chapter = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '.btn.btn-lg.btn-primary')))
     first_chapter.click()
 
-    # check with small novel first just a few chapters!!!
     # # One Chapter
     # chapter_title, text = copy_chapter(driver)
     # add_chapter(file=ebook_name, chapter_title=chapter_title, chapter_content=text)

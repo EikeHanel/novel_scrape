@@ -1,6 +1,5 @@
 from ebooklib import epub
 
-
 def create_epub(title, description, url):
     """
     Creates an initial EPUB file with metadata.
@@ -66,7 +65,6 @@ def create_epub(title, description, url):
     book.add_item(epub.EpubNav())
     # Save the empty book
     epub.write_epub(title + ".epub", book, {})
-    print(f"{title}.epub")
     return title + ".epub"
 
 
@@ -102,13 +100,13 @@ def add_chapter(file, chapter_title, chapter_content):
     """
     c1.content = chapter_html_content
     book.add_item(c1)
+    epub_link = epub.Link(href=chapter_title + ".xhtml", title=chapter_title, uid=chapter_title)
 
     # Update TOC (Table of Contents)
-    print(book.toc)
     if type(book.toc) == list:
-        book.toc.append(c1)
+        book.toc.append(epub_link)
     else:
-        book.toc = (c1,)
+        book.toc = (epub_link,)
 
     # Update the spine (the reading order of chapters)
     book.spine.append(c1)
