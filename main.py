@@ -5,8 +5,10 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
-from epub_helper import create_epub, add_chapter
+import requests
+from epub_helper import CreateEpub
 import re
+import time
 
 
 def main():
@@ -18,36 +20,55 @@ def main():
 
     # Connect to royal road webpage:
     # Replace royal_road_novel with the novel you want to "download" and convert to epub
-    royal_road_novel = "https://www.royalroad.com/fiction/108300/arcanist-in-another-world-a-healer-archmage-isekai"
+    royal_road_novel = "https://www.royalroad.com/fiction/26675/a-journey-of-black-and-red"
     driver = webdriver.Chrome(options=options)
     driver.get(royal_road_novel)
 
-    # Get Title and Description
+    # Title & Author
     title = driver.find_element(By.CSS_SELECTOR, "div>h1").text
     title = re.sub(r'[^\w\s]', '', title)
-    info_pos = driver.find_element(By.CLASS_NAME, "description")
-    full_info = info_pos.get_attribute("textContent")
+    author = driver.find_element(By.CSS_SELECTOR, "div>h4>span>a").text
+
+    # Cover
+    cover_url = driver.find_element(By.CSS_SELECTOR, 'div>img').get_attribute("src")
+    response = requests.get(cover_url)
+    time.sleep(2)
+    if response.status_code == 200:
+        cover_path = f"{title}.jpg"
+        with open(cover_path, "wb") as file:
+            file.write(response.content)
+    else:
+        cover_path = False
+
+    # Description
+    description = driver.find_element(By.CLASS_NAME, "description")
+    description = description.get_attribute("textContent")
 
     # Create epub with title and description:
-    ebook_name = create_epub(title=title, description=full_info, url=royal_road_novel)
+    my_book = CreateEpub(title=title, author=author, cover_path=cover_path,
+                         description=description, url=royal_road_novel)
 
     # Select First Chapter
     wait = WebDriverWait(driver, 10)
     first_chapter = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '.btn.btn-lg.btn-primary')))
     first_chapter.click()
 
-    # # One Chapter
-    # chapter_title, text = copy_chapter(driver)
-    # add_chapter(file=ebook_name, chapter_title=chapter_title, chapter_content=text)
-    # driver.quit()
+    # One Chapter
+    chapter_title, text = copy_chapter(driver)
+    my_book.add_chapter(chapter_title, text)
+    driver.quit()
+    my_book.save()
 
     # ALL CHAPTERS
-    while True:
-        chapter_title, text = copy_chapter(driver)
-        add_chapter(file=ebook_name, chapter_title=chapter_title, chapter_content=text)
-        if not next_chapter(driver):
-            break
-    driver.quit()
+    # while True:
+    #     time.sleep(2)
+    #     chapter_title, text = copy_chapter(driver)
+    #     my_book.add_chapter(chapter_title, text)
+    #     # add_chapter(file=ebook_name, chapter_title=chapter_title, chapter_content=text)
+    #     if not next_chapter(driver):
+    #         break
+    # my_book.save()
+    # driver.quit()
 
 
 def copy_chapter(driver):
