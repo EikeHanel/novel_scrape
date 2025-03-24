@@ -20,7 +20,7 @@ def main():
 
     # Connect to royal road webpage:
     # Replace royal_road_novel with the novel you want to "download" and convert to epub
-    royal_road_novel = "https://www.royalroad.com/fiction/26675/a-journey-of-black-and-red"
+    royal_road_novel = "https://www.royalroad.com/fiction/108300/arcanist-in-another-world-a-healer-archmage-isekai"
     driver = webdriver.Chrome(options=options)
     driver.get(royal_road_novel)
 
@@ -38,6 +38,7 @@ def main():
         with open(cover_path, "wb") as file:
             file.write(response.content)
     else:
+        print("no image error")
         cover_path = False
 
     # Description
@@ -54,21 +55,22 @@ def main():
     first_chapter.click()
 
     # One Chapter
-    chapter_title, text = copy_chapter(driver)
-    my_book.add_chapter(chapter_title, text)
-    driver.quit()
-    my_book.save()
+    # chapter_title, text = copy_chapter(driver)
+    # print(text)
+    # my_book.add_chapter(chapter_title, text)
+    # driver.quit()
+    # my_book.save()
 
     # ALL CHAPTERS
-    # while True:
-    #     time.sleep(2)
-    #     chapter_title, text = copy_chapter(driver)
-    #     my_book.add_chapter(chapter_title, text)
-    #     # add_chapter(file=ebook_name, chapter_title=chapter_title, chapter_content=text)
-    #     if not next_chapter(driver):
-    #         break
-    # my_book.save()
-    # driver.quit()
+    while True:
+        time.sleep(2)
+        chapter_title, text = copy_chapter(driver)
+        my_book.add_chapter(chapter_title, text)
+        # add_chapter(file=ebook_name, chapter_title=chapter_title, chapter_content=text)
+        if not next_chapter(driver):
+            break
+    my_book.save()
+    driver.quit()
 
 
 def copy_chapter(driver):
@@ -82,7 +84,7 @@ def copy_chapter(driver):
         tuple: A tuple containing the chapter title (str) and cleaned HTML content (str).
     """
     chapter_title = driver.find_element(By.CSS_SELECTOR, "div>h1").text
-    chapter = driver.find_element(By.XPATH, '/html/body/div[3]/div/div/div/div/div[2]/div[2]/div[3]')
+    chapter = driver.find_element(By.CSS_SELECTOR, 'div>.chapter-inner.chapter-content')
     chapter = chapter.get_attribute("outerHTML")
 
     soup = BeautifulSoup(chapter, 'html.parser')

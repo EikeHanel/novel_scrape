@@ -55,19 +55,6 @@ class CreateEpub:
     def add_cover_page(self, cover_path):
         with open(cover_path, "rb") as cover_file:
             self.book.set_cover(file_name="cover.jpg", content=cover_file.read())
-        cover_page = epub.EpubHtml(title="Cover", file_name="cover.xhtml", lang="en")
-        cover_page.content = f'''
-            <html>
-                <head>
-                    <title>Cover</title>
-                </head>
-                <body>
-                    <img src="cover.jpg" alt="Cover Image" style="width:100%;"/>
-                </body>
-            </html>
-            '''
-        self.book.add_item(cover_page)
-        self.book.spine.insert(0, cover_page)
 
     def add_chapter(self, chapter_title, chapter_content):
         """
