@@ -1,8 +1,12 @@
 from ebooklib import epub
+import re
+import os
+import requests
+import time
 
 
 class CreateEpub:
-    def __init__(self, title, author, cover_path, description, url):
+    def __init__(self, title, author, cover_url, description, url, save_path):
         """
         Initialize an EPUB book with metadata.
         """
@@ -10,12 +14,15 @@ class CreateEpub:
         self.book.set_identifier(url)
         self.book.set_title(title)
         self.book.set_language("en")
-        if cover_path:
-            self.add_cover_page(cover_path)
         self.book.add_author(author)
         self.book.add_metadata("DC", "description", description)
-
         self.title = title
+
+        safe_title = re.sub(r'[^\w\s-]', '', title).strip().replace(" ", "_")
+        self.save_path = os.path.join(save_path, safe_title)
+        os.makedirs(self.save_path, exist_ok=True)
+        if cover_url:
+            self.add_cover_page(cover_url)
 
         # Default CSS
         style = '''
@@ -52,7 +59,16 @@ class CreateEpub:
         self.book.add_item(epub.EpubNcx())
         self.book.add_item(epub.EpubNav())
 
-    def add_cover_page(self, cover_path):
+    def add_cover_page(self, cover_url):
+        response = requests.get(cover_url)
+        time.sleep(2)
+        if response.status_code == 200:
+            cover_path = os.path.join(self.save_path, "cover.jpg")
+            with open(cover_path, "wb") as file:
+                file.write(response.content)
+        else:
+            return
+
         with open(cover_path, "rb") as cover_file:
             self.book.set_cover(file_name="cover.jpg", content=cover_file.read())
 
@@ -77,12 +93,12 @@ class CreateEpub:
         self.book.toc.append(chapter)
         self.book.spine.append(chapter)
 
-    def save(self, filename=None):
+    def save(self):
         """
         Saves the EPUB file to disk.
         """
-        if filename is None:
-            filename = self.title + ".epub"
-        epub.write_epub(filename, self.book, {})
-        return filename
+        filename = self.title
+        filename = re.sub(r'[^\w\s-]', '', filename).strip().replace(" ", "_")
+        full_path = os.path.join(self.save_path, filename + ".epub")
+        epub.write_epub(full_path, self.book, {})
 

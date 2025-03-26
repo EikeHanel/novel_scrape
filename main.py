@@ -5,24 +5,29 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
-import requests
 from epub_helper import CreateEpub
 import re
-import time
+import os
 
 
 def main():
     """
         Scrapes a novel from Royal Road and converts it into an EPUB file.
     """
+    save_path = os.getcwd() + "/Novels"
+    royal_road_novel = "https://www.royalroad.com/fiction/36735/the-perfect-run"
+
     options = Options()
     options.add_experimental_option("detach", True)
 
     # Connect to royal road webpage:
-    # Replace royal_road_novel with the novel you want to "download" and convert to epub
-    royal_road_novel = "https://www.royalroad.com/fiction/108300/arcanist-in-another-world-a-healer-archmage-isekai"
     driver = webdriver.Chrome(options=options)
     driver.get(royal_road_novel)
+
+    # PopUp
+    wait = WebDriverWait(driver, 10)
+    pop_up = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="ncmp__tool"]/div/div/div[3]/div[1]/button[2]')))
+    pop_up.click()
 
     # Title & Author
     title = driver.find_element(By.CSS_SELECTOR, "div>h1").text
@@ -31,30 +36,20 @@ def main():
 
     # Cover
     cover_url = driver.find_element(By.CSS_SELECTOR, 'div>img').get_attribute("src")
-    response = requests.get(cover_url)
-    time.sleep(2)
-    if response.status_code == 200:
-        cover_path = f"{title}.jpg"
-        with open(cover_path, "wb") as file:
-            file.write(response.content)
-    else:
-        print("no image error")
-        cover_path = False
 
     # Description
     description = driver.find_element(By.CLASS_NAME, "description")
     description = description.get_attribute("textContent")
 
     # Create epub with title and description:
-    my_book = CreateEpub(title=title, author=author, cover_path=cover_path,
-                         description=description, url=royal_road_novel)
+    my_book = CreateEpub(title=title, author=author, cover_url=cover_url,
+                         description=description, url=royal_road_novel, save_path=save_path)
 
     # Select First Chapter
-    wait = WebDriverWait(driver, 10)
     first_chapter = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '.btn.btn-lg.btn-primary')))
     first_chapter.click()
 
-    # One Chapter
+    # # One Chapter - Use for Bug-tests
     # chapter_title, text = copy_chapter(driver)
     # print(text)
     # my_book.add_chapter(chapter_title, text)
@@ -63,10 +58,9 @@ def main():
 
     # ALL CHAPTERS
     while True:
-        time.sleep(2)
+        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'div>.chapter-inner.chapter-content')))
         chapter_title, text = copy_chapter(driver)
         my_book.add_chapter(chapter_title, text)
-        # add_chapter(file=ebook_name, chapter_title=chapter_title, chapter_content=text)
         if not next_chapter(driver):
             break
     my_book.save()
@@ -84,6 +78,7 @@ def copy_chapter(driver):
         tuple: A tuple containing the chapter title (str) and cleaned HTML content (str).
     """
     chapter_title = driver.find_element(By.CSS_SELECTOR, "div>h1").text
+    chapter_title = re.sub(r'[^\w\s]', '', chapter_title)
     chapter = driver.find_element(By.CSS_SELECTOR, 'div>.chapter-inner.chapter-content')
     chapter = chapter.get_attribute("outerHTML")
 
@@ -106,10 +101,16 @@ def next_chapter(driver):
         bool: True if navigation was successful, False if there are no more chapters.
     """
     wait = WebDriverWait(driver, 10)
-    btn_next_chapter = wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div[3]/div/div/div/div/div['
-                                                                            '2]/div[2]/div[1]/div[2]')))
+
     try:
-        btn_next_chapter = btn_next_chapter.find_element(By.TAG_NAME, "a")
+        btn_next_chapter = wait.until(EC.presence_of_element_located(
+            (By.XPATH, "//a[contains(text(),'Next')] "
+                       " | "
+                       "/html/body/div[3]/div/div/div/div/div[2]/div[2]/div[1]/div[2]/button")
+        ))
+        if btn_next_chapter.tag_name == "button":
+            print("Reached the last chapter.")
+            return False
         btn_next_chapter.click()
         return True
     except NoSuchElementException:
